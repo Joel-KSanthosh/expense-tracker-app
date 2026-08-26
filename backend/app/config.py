@@ -11,6 +11,7 @@ class Postgres(BaseSettings):
     port: int
     user: str
     password_secret_name: str
+    db: str
 
     model_config = SettingsConfigDict(env_prefix="POSTGRES_", use_enum_values=True)
 
@@ -18,7 +19,7 @@ class Postgres(BaseSettings):
 class Settings(BaseSettings):
     postgres: Postgres = Postgres()  # pyright: ignore[reportCallIssue]
 
-    model_config = SettingsConfigDict(env_file=".env", use_enum_values=True)
+    model_config = SettingsConfigDict(env_file=".env", use_enum_values=True, extra="ignore")
 
 
 @lru_cache

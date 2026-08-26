@@ -1,15 +1,39 @@
 import asyncio
+import os
+import sys
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+from backend.app.config import get_settings
+from backend.app.models import Base, Category, Expense, User
+from backend.infisical import InfisicalSecretManager
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+settings = get_settings()
 
+
+async def get_db_url() -> str:
+    secret_manager = InfisicalSecretManager()
+    password: str = await secret_manager.get_secret(secret_name=settings.postgres.password_secret_name)
+    return (
+        f"postgresql+asyncpg://"
+        f"{settings.postgres.user}:"
+        f"{password}@"
+        f"{settings.postgres.host}:"
+        f"{settings.postgres.port}/"
+        f"{settings.postgres.db}"
+    )
+
+
+postgres_url = asyncio.run(main=get_db_url())
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -19,7 +43,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -39,9 +63,9 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    config.set_main_option(name="sqlalchemy.url", value=postgres_url)
     context.configure(
-        url=url,
+        url=postgres_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -64,8 +88,11 @@ async def run_async_migrations() -> None:
 
     """
 
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+    connectable: AsyncEngine = async_engine_from_config(
+        configuration={
+            **config.get_section(config.config_ini_section, {}),
+            "sqlalchemy.url": postgres_url,
+        },
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
