@@ -1,12 +1,12 @@
 import logging
 from typing import Any
 
+from backend.app.errors import AppError
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from backend.app.errors import AppError
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ async def handle_exception(
             status=422,
             code="validation_error",
             message="Request validation failed",
-            details=exc.errors(),
+            details=jsonable_encoder(exc.errors()),
         )
 
     if isinstance(exc, StarletteHTTPException):

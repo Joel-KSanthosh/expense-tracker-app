@@ -32,10 +32,3 @@ class User(Base):
         onupdate=lambda: datetime.now(tz=timezone.utc),
         nullable=False,
     )
-
-    def __init__(self, f_name: str, m_name: str, l_name: str, email: str, password: str) -> None:
-        self.f_name = f_name
-        self.m_name = m_name
-        self.l_name = l_name
-        self.email = email
-        self.password = password
